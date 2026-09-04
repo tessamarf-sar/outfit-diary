@@ -229,6 +229,7 @@ svg.ic{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;st
 .upload-box img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
 .upload-box .change-badge{position:absolute;bottom:6px;right:6px;background:rgba(20,14,12,0.55);color:#fff;border-radius:999px;padding:5px 9px;font-size:0.68rem;font-weight:650;backdrop-filter:blur(4px);display:flex;align-items:center;gap:4px;}
 .upload-box span.hint{font-size:0.76rem;font-weight:650;text-align:center;padding:0 8px;}
+.upload-box span.hint-sub{font-size:0.66rem;color:var(--ink-faint);font-weight:500;}
 
 .select-tile{position:relative;width:82px;flex-shrink:0;display:flex;flex-direction:column;gap:5px;cursor:pointer;}
 .select-tile .photo-frame{aspect-ratio:1/1;border-radius:12px;border:2px solid transparent;}
@@ -313,7 +314,7 @@ svg.ic{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;st
 </div>
 <div id="sheet-layer"></div>
 <div class="toast" id="toast"></div>
-<input type="file" id="file-input" accept="image/*" capture="environment" style="display:none;">
+<input type="file" id="file-input" accept="image/*" style="display:none;">
 <input type="file" id="import-file-input" accept="application/json" style="display:none;">
 
 <script>
@@ -822,10 +823,28 @@ document.getElementById('file-input').addEventListener('change',function(e){
     cb(dataUrl);
   });
 });
+var PHOTO_SHEET_IDS=['outfit-form','garment-form','garment-form-nested','tracking-form'];
+document.addEventListener('paste',function(e){
+  if(!sheets.length) return;
+  var top=sheets[sheets.length-1];
+  if(PHOTO_SHEET_IDS.indexOf(top.id)===-1) return;
+  var items=(e.clipboardData&&e.clipboardData.items)||[];
+  var imgItem=null;
+  for(var i=0;i<items.length;i++){ if(items[i].type&&items[i].type.indexOf('image')===0){ imgItem=items[i]; break; } }
+  if(!imgItem) return;
+  e.preventDefault();
+  var file=imgItem.getAsFile();
+  if(!file) return;
+  compressImage(file).then(function(dataUrl){
+    top.draft.photo=dataUrl;
+    refreshSheet();
+    toast('Photo pasted');
+  });
+});
 function uploadBoxHtml(photo,onKey){
   return '<div class="upload-box" data-action="trigger-upload" data-upload-key="'+onKey+'">'+
     (photo?('<img src="'+photo+'"><span class="change-badge">'+icon('camera',13)+' Change</span>')
-      :('<span>'+icon('camera',26)+'</span><span class="hint">Add a photo</span>'))+
+      :('<span>'+icon('camera',26)+'</span><span class="hint">Tap to add a photo</span><span class="hint-sub">or paste one</span>'))+
   '</div>';
 }
 
