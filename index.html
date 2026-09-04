@@ -1367,6 +1367,7 @@ document.addEventListener('click',function(e){
   if(!el) return;
   var action=el.getAttribute('data-action');
   var id=el.getAttribute('data-id');
+  try{
   switch(action){
     case 'go-tab': goTab(el.getAttribute('data-tab')); break;
     case 'open-fab-menu': openFabMenu(); break;
@@ -1591,6 +1592,10 @@ document.addEventListener('click',function(e){
         put('categories',cat).then(function(){DATA.categories.push(cat); render(); toast('Category added');});
       })();
       break;
+  }
+  }catch(err){
+    console.error('action "'+action+'" failed',err);
+    toast('Something went wrong ('+(err&&err.message||'unknown error')+')');
   }
 });
 document.getElementById('fab').addEventListener('click',openFabMenu);
