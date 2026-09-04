@@ -243,6 +243,13 @@ svg.ic{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;st
 .select-tile .check-badge{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.3);}
 .select-tile .check-badge svg{width:12px;height:12px;stroke-width:3;}
 .tile-scroll{display:flex;gap:11px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
+.cat-picker{margin-bottom:8px;}
+.cat-picker-row{display:flex;align-items:center;gap:9px;padding:12px 13px;background:var(--surface-alt);border-radius:12px;cursor:pointer;}
+.cat-picker-name{font-weight:650;font-size:0.88rem;flex:1;}
+.cat-picker-meta{font-size:0.76rem;color:var(--ink-faint);font-weight:600;}
+.cat-picker-chev{display:flex;color:var(--ink-faint);transition:transform .2s ease;flex-shrink:0;}
+.cat-picker-chev.expanded{transform:rotate(90deg);}
+.cat-picker .tile-scroll{margin-top:9px;}
 .tile-scroll::-webkit-scrollbar{display:none;}
 .add-tile{width:82px;flex-shrink:0;aspect-ratio:1/1;border-radius:12px;border:1.75px dashed var(--line);background:var(--surface-alt);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--accent);cursor:pointer;font-size:0.68rem;font-weight:700;text-align:center;padding:4px;}
 
@@ -390,10 +397,10 @@ function friendlyDbError(err){
 /* ---------------- App state ---------------- */
 var DATA={garments:[],outfits:[],trackingEntries:[],tags:[],categories:[]};
 var state={tab:'home',stack:[],calMonth:new Date().getMonth(),calYear:new Date().getFullYear(),
-  outfitFilter:new Set(), garmentFilter:new Set()};
+  outfitFilter:new Set(), garmentFilter:new Set(), outfitNeedsInfoOnly:false};
 var editingCache={};
 var APP_NAME='Rotation';
-var BUILD_STAMP='2026-09-04-17:20';
+var BUILD_STAMP='2026-09-04-17:45';
 
 var DEFAULT_CATEGORIES=['Sleeveless tops','Sleeved tops','Long-sleeve tops','Jackets/cardigans','Outerwear','Pants','Shorts/skorts','Skirts','Swimsuits','Cover-ups','Sneakers/rubber shoes','Flats','Sandals/slippers','Heels','Bags','Accessories','Winter accessories','Sunglasses'];
 var CATEGORY_BUCKET={
@@ -579,12 +586,17 @@ function renderCalendarCard(){
 
 /* ---------------- OUTFITS TAB ---------------- */
 function renderOutfits(){
+  var needsInfoCount=DATA.outfits.filter(function(o){return o.needsInfo;}).length;
   var filtered=DATA.outfits.filter(function(o){
+    if(state.outfitNeedsInfoOnly&&!o.needsInfo) return false;
     if(!state.outfitFilter.size) return true;
     var ok=true;
     state.outfitFilter.forEach(function(tid){if((o.tagIds||[]).indexOf(tid)===-1) ok=false;});
     return ok;
   }).sort(function(a,b){return b.createdAt-a.createdAt;});
+  var needsInfoToggleHtml=needsInfoCount?('<div class="chip-row">'+
+      '<span class="chip small'+(state.outfitNeedsInfoOnly?' active':'')+'" data-action="toggle-outfit-needs-info">Needs info only ('+needsInfoCount+')</span>'+
+    '</div>'):'';
   var filterHtml=DATA.tags.length?('<div class="chip-row">'+
       '<span class="chip'+(!state.outfitFilter.size?' active':'')+'" data-action="outfit-filter-clear">All</span>'+
       DATA.tags.map(function(t){return '<span class="chip'+(state.outfitFilter.has(t.id)?' active':'')+'" data-action="outfit-filter-toggle" data-id="'+t.id+'">'+esc(t.name)+'</span>';}).join('')+
@@ -596,7 +608,7 @@ function renderOutfits(){
       '<button class="btn btn-primary" data-action="open-outfit-form">Add your first outfit</button></div>';
   }else if(!filtered.length){
     body='<div class="card empty-state"><div class="empty-icon">'+icon('outfits',28)+'</div>'+
-      '<h3>No outfits match</h3><p class="body-text">Try clearing your tag filters.</p>'+
+      '<h3>No outfits match</h3><p class="body-text">Try clearing your filters.</p>'+
       '<button class="btn btn-ghost" data-action="outfit-filter-clear">Clear filters</button></div>';
   }else{
     body='<div class="tile-grid">'+filtered.map(function(o){
@@ -612,7 +624,7 @@ function renderOutfits(){
   }
   return '<div class="screen"><div class="page-head"><h1 class="h1">Outfits</h1>'+
     '<p class="meta">'+DATA.outfits.length+' outfit'+(DATA.outfits.length===1?'':'s')+' in your gallery</p></div>'+
-    filterHtml+body+'</div>';
+    needsInfoToggleHtml+filterHtml+body+'</div>';
 }
 
 /* ---------------- GARMENTS TAB ---------------- */
@@ -1140,22 +1152,33 @@ function garmentSelectTile(g,active){
     (active?'<span class="check-badge">'+icon('check',12)+'</span>':'')+
     '<div class="select-tile-name">'+esc(g.name||'Untitled')+'</div></div>';
 }
-function renderGarmentPickerGroups(selectedIds){
-  if(!DATA.garments.length){
-    return '<div class="tile-scroll"><div class="add-tile" data-action="outfit-add-new-garment">'+icon('plus',18)+'<span>New garment</span></div></div>';
-  }
+function garmentCategoryGroups(){
   var used=[];
   var groups=DATA.categories.map(function(c){
     var items=DATA.garments.filter(function(g){return (g.categoryIds||[]).indexOf(c.id)>-1;});
     items.forEach(function(g){if(used.indexOf(g.id)===-1) used.push(g.id);});
-    return {name:c.name,items:items};
+    return {id:c.id,name:c.name,items:items};
   }).filter(function(grp){return grp.items.length;});
   var uncategorized=DATA.garments.filter(function(g){return used.indexOf(g.id)===-1;});
-  if(uncategorized.length) groups.push({name:'Uncategorized',items:uncategorized});
+  if(uncategorized.length) groups.push({id:'__uncategorized',name:'Uncategorized',items:uncategorized});
+  return groups;
+}
+function renderGarmentPickerGroups(selectedIds,expandedMap){
+  expandedMap=expandedMap||{};
+  if(!DATA.garments.length){
+    return '<div class="tile-scroll"><div class="add-tile" data-action="outfit-add-new-garment">'+icon('plus',18)+'<span>New garment</span></div></div>';
+  }
+  var groups=garmentCategoryGroups();
   var html=groups.map(function(grp){
-    return '<div style="margin-bottom:10px;">'+
-      '<p class="eyebrow" style="margin-bottom:6px;">'+esc(grp.name)+'</p>'+
-      '<div class="tile-scroll">'+grp.items.map(function(g){return garmentSelectTile(g,selectedIds.indexOf(g.id)>-1);}).join('')+'</div>'+
+    var selCount=grp.items.filter(function(g){return selectedIds.indexOf(g.id)>-1;}).length;
+    var expanded=!!expandedMap[grp.id];
+    return '<div class="cat-picker">'+
+      '<div class="cat-picker-row" data-action="toggle-garment-category" data-id="'+grp.id+'">'+
+        '<span class="cat-picker-chev'+(expanded?' expanded':'')+'">'+icon('chevronRight',15)+'</span>'+
+        '<span class="cat-picker-name">'+esc(grp.name)+'</span>'+
+        '<span class="cat-picker-meta">'+selCount+'/'+grp.items.length+' selected</span>'+
+      '</div>'+
+      (expanded?('<div class="tile-scroll">'+grp.items.map(function(g){return garmentSelectTile(g,selectedIds.indexOf(g.id)>-1);}).join('')+'</div>'):'')+
     '</div>';
   }).join('');
   html+='<div class="tile-scroll"><div class="add-tile" data-action="outfit-add-new-garment">'+icon('plus',18)+'<span>New garment</span></div></div>';
@@ -1165,6 +1188,13 @@ function renderGarmentPickerGroups(selectedIds){
 /* ---------------- OUTFIT FORM SHEET ---------------- */
 function openOutfitForm(existingId){
   var existing=existingId?outfitById(existingId):null;
+  var expandedCategories={};
+  if(existing&&existing.garmentIds&&existing.garmentIds.length){
+    garmentCategoryGroups().forEach(function(grp){
+      var hasSelected=grp.items.some(function(g){return existing.garmentIds.indexOf(g.id)>-1;});
+      if(hasSelected) expandedCategories[grp.id]=true;
+    });
+  }
   var draft={
     photo:existing?existing.photo:null,
     name:existing?existing.name:'',
@@ -1172,7 +1202,8 @@ function openOutfitForm(existingId){
     garmentIds:existing?(existing.garmentIds||[]).slice():[],
     tagIds:existing?(existing.tagIds||[]).slice():[],
     editId:existing?existing.id:null,
-    showTagInput:false
+    showTagInput:false,
+    expandedCategories:expandedCategories
   };
   openSheetObj({id:'outfit-form',render:function(){
     var body=
@@ -1196,7 +1227,7 @@ function openOutfitForm(existingId){
         '</div>'+
       '</div>'+
       '<div class="field"><label class="label">Garments included</label>'+
-        renderGarmentPickerGroups(draft.garmentIds)+
+        renderGarmentPickerGroups(draft.garmentIds,draft.expandedCategories)+
       '</div>';
     var foot='<button class="btn btn-ghost" data-action="close-sheet" data-sheet="outfit-form">Cancel</button>'+
       '<button class="btn btn-primary btn-block" data-action="save-outfit">'+(existing?'Save changes':'Save outfit')+'</button>';
@@ -1465,7 +1496,8 @@ document.addEventListener('click',function(e){
       pushDetail({type:'outfitDetail',id:id});
       break;
     case 'pop-detail': popDetail(); break;
-    case 'outfit-filter-clear': state.outfitFilter.clear(); render(); break;
+    case 'outfit-filter-clear': state.outfitFilter.clear(); state.outfitNeedsInfoOnly=false; render(); break;
+    case 'toggle-outfit-needs-info': state.outfitNeedsInfoOnly=!state.outfitNeedsInfoOnly; render(); break;
     case 'outfit-filter-toggle':
       if(state.outfitFilter.has(id)) state.outfitFilter.delete(id); else state.outfitFilter.add(id);
       render(); break;
@@ -1590,6 +1622,14 @@ document.addEventListener('click',function(e){
         if(!s) return;
         var i=s.draft.garmentIds.indexOf(id);
         if(i>-1) s.draft.garmentIds.splice(i,1); else s.draft.garmentIds.push(id);
+        refreshSheet();
+      })();
+      break;
+    case 'toggle-garment-category':
+      (function(){
+        var s=sheets.find(function(x){return x.id==='outfit-form';});
+        if(!s) return;
+        s.draft.expandedCategories[id]=!s.draft.expandedCategories[id];
         refreshSheet();
       })();
       break;
