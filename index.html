@@ -387,6 +387,7 @@ var state={tab:'home',stack:[],calMonth:new Date().getMonth(),calYear:new Date()
   outfitFilter:new Set(), garmentFilter:new Set()};
 var editingCache={};
 var APP_NAME='Rotation';
+var BUILD_STAMP='2026-09-04-16:10';
 
 var DEFAULT_CATEGORIES=['Sleeveless tops','Sleeved tops','Long-sleeve tops','Jackets/cardigans','Outerwear','Pants','Shorts/skorts','Skirts','Swimsuits','Cover-ups','Sneakers/rubber shoes','Flats','Sandals/slippers','Heels','Bags','Accessories','Winter accessories','Sunglasses'];
 var CATEGORY_BUCKET={
@@ -696,6 +697,7 @@ function renderSettings(){
       '</div>'+
     '</div>'+
     '<p class="foot-note">All your photos and entries stay on this device.</p>'+
+    '<p class="foot-note">Build '+BUILD_STAMP+'</p>'+
   '</div>';
 }
 
