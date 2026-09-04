@@ -366,6 +366,11 @@ function del(store,id){return txStore(store,'readwrite').then(function(os){retur
 function clearStore(store){return txStore(store,'readwrite').then(function(os){return new Promise(function(res,rej){var r=os.clear();r.onsuccess=function(){res();};r.onerror=rej;});});}
 function getMeta(key){return txStore('meta').then(function(os){return new Promise(function(res){var r=os.get(key);r.onsuccess=function(){res(r.result?r.result.value:undefined);};r.onerror=function(){res(undefined);};});});}
 function setMeta(key,value){return put('meta',{id:key,value:value});}
+function friendlyDbError(err){
+  var name=(err&&(err.name||err.message))||'';
+  if(/Quota/i.test(name)) return 'Your browser storage is full. Try a smaller photo, or delete a few old items in Settings.';
+  return 'Could not save that — please try again.';
+}
 
 /* ---------------- App state ---------------- */
 var DATA={garments:[],outfits:[],trackingEntries:[],tags:[],categories:[]};
@@ -921,6 +926,9 @@ function saveGarmentFromSheet(sheetId){
     if(s.onSaved) s.onSaved(g);
     toast(d.editId?'Garment updated':'Garment added');
     render();
+  }).catch(function(err){
+    console.error('save garment failed',err);
+    toast(friendlyDbError(err));
   });
 }
 
@@ -1012,6 +1020,9 @@ function saveOutfitFromSheet(){
     closeSheetById('outfit-form');
     toast(d.editId?'Outfit updated':'Outfit saved');
     render();
+  }).catch(function(err){
+    console.error('save outfit failed',err);
+    toast(friendlyDbError(err));
   });
 }
 
@@ -1073,11 +1084,17 @@ function saveTrackingFromSheet(){
       closeSheetById('tracking-form');
       toast('Tracked for '+fmtShort(d.date));
       render();
+    }).catch(function(err){
+      console.error('save tracking entry failed',err);
+      toast(friendlyDbError(err));
     });
   }
   if(d.mode==='upload'&&d.photo){
     var o={id:uid(),photo:d.photo,name:'',note:'',garmentIds:[],tagIds:[],createdAt:Date.now()};
-    put('outfits',o).then(function(){DATA.outfits.unshift(o);finish(o.id);});
+    put('outfits',o).then(function(){DATA.outfits.unshift(o);finish(o.id);}).catch(function(err){
+      console.error('save quick outfit failed',err);
+      toast(friendlyDbError(err));
+    });
   }else if(d.outfitId){
     finish(d.outfitId);
   }
@@ -1270,6 +1287,9 @@ document.addEventListener('click',function(e){
     case 'track-today':
       put('trackingEntries',{id:uid(),outfitId:id,date:todayKey(),createdAt:Date.now()}).then(function(entry){
         DATA.trackingEntries.push(entry); render(); toast('Tracked as worn today');
+      }).catch(function(err){
+        console.error('track today failed',err);
+        toast(friendlyDbError(err));
       });
       break;
     case 'track-other-date':
@@ -1382,14 +1402,17 @@ document.addEventListener('click',function(e){
         var input=document.getElementById('inline-edit-input');
         var name=(input?input.value:'').trim();
         if(!name){editingCache={};render();return;}
-        if(kind==='tag'){
-          var t=tagById(id); if(t){ t.name=name; put('tags',t); }
-        }else{
-          var c=categoryById(id); if(c){ c.name=name; put('categories',c); }
-        }
-        editingCache={};
-        render();
-        toast('Saved');
+        var item=kind==='tag'?tagById(id):categoryById(id);
+        if(!item){editingCache={};render();return;}
+        item.name=name;
+        put(kind==='tag'?'tags':'categories',item).then(function(){
+          editingCache={};
+          render();
+          toast('Saved');
+        }).catch(function(err){
+          console.error('inline edit save failed',err);
+          toast(friendlyDbError(err));
+        });
       })();
       break;
     case 'export-backup': exportBackup(); break;
@@ -1512,6 +1535,10 @@ function loadAll(){
     DATA.garments=r[0]; DATA.outfits=r[1]; DATA.trackingEntries=r[2]; DATA.tags=r[3]; DATA.categories=r[4];
   });
 }
+window.addEventListener('unhandledrejection',function(e){
+  console.error('unhandled rejection',e.reason);
+  toast(friendlyDbError(e.reason));
+});
 function init(){
   getMeta('seeded').then(function(seeded){
     if(seeded){ return loadAll(); }
