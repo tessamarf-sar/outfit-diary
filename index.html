@@ -387,7 +387,7 @@ var state={tab:'home',stack:[],calMonth:new Date().getMonth(),calYear:new Date()
   outfitFilter:new Set(), garmentFilter:new Set()};
 var editingCache={};
 var APP_NAME='Rotation';
-var BUILD_STAMP='2026-09-04-16:25-debug';
+var BUILD_STAMP='2026-09-04-16:40-blurfix';
 
 var DEFAULT_CATEGORIES=['Sleeveless tops','Sleeved tops','Long-sleeve tops','Jackets/cardigans','Outerwear','Pants','Shorts/skorts','Skirts','Swimsuits','Cover-ups','Sneakers/rubber shoes','Flats','Sandals/slippers','Heels','Bags','Accessories','Winter accessories','Sunglasses'];
 var CATEGORY_BUCKET={
@@ -826,6 +826,12 @@ document.getElementById('file-input').addEventListener('change',function(e){
     openCropEditor(rawDataUrl,cb);
   }).catch(function(){ toast('Could not read that photo'); });
 });
+document.addEventListener('touchstart',function(e){
+  var active=document.activeElement;
+  if(active&&(active.tagName==='INPUT'||active.tagName==='TEXTAREA')&&active!==e.target&&!active.contains(e.target)){
+    active.blur();
+  }
+},{passive:true});
 var PHOTO_SHEET_IDS=['outfit-form','garment-form','garment-form-nested','tracking-form'];
 document.addEventListener('paste',function(e){
   if(!sheets.length) return;
