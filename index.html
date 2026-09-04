@@ -387,7 +387,7 @@ var state={tab:'home',stack:[],calMonth:new Date().getMonth(),calYear:new Date()
   outfitFilter:new Set(), garmentFilter:new Set()};
 var editingCache={};
 var APP_NAME='Rotation';
-var BUILD_STAMP='2026-09-04-16:10';
+var BUILD_STAMP='2026-09-04-16:25-debug';
 
 var DEFAULT_CATEGORIES=['Sleeveless tops','Sleeved tops','Long-sleeve tops','Jackets/cardigans','Outerwear','Pants','Shorts/skorts','Skirts','Swimsuits','Cover-ups','Sneakers/rubber shoes','Flats','Sandals/slippers','Heels','Bags','Accessories','Winter accessories','Sunglasses'];
 var CATEGORY_BUCKET={
@@ -1128,8 +1128,9 @@ function openOutfitForm(existingId){
   },draft:draft});
 }
 function saveOutfitFromSheet(){
+  toast('DEBUG 1: save tapped');
   var s=sheets.find(function(x){return x.id==='outfit-form';});
-  if(!s) return;
+  if(!s){ toast('DEBUG 2: no sheet found'); return; }
   var d=s.draft;
   var o={
     id:d.editId||uid(),
@@ -1140,7 +1141,9 @@ function saveOutfitFromSheet(){
     tagIds:d.tagIds.slice(),
     createdAt:d.editId?(outfitById(d.editId)?outfitById(d.editId).createdAt:Date.now()):Date.now()
   };
+  toast('DEBUG 3: writing to db');
   put('outfits',o).then(function(){
+    toast('DEBUG 4: write ok');
     var idx=DATA.outfits.findIndex(function(x){return x.id===o.id;});
     if(idx>-1) DATA.outfits[idx]=o; else DATA.outfits.unshift(o);
     closeSheetById('outfit-form');
@@ -1148,7 +1151,7 @@ function saveOutfitFromSheet(){
     render();
   }).catch(function(err){
     console.error('save outfit failed',err);
-    toast(friendlyDbError(err));
+    toast('DEBUG 5: write failed - '+friendlyDbError(err));
   });
 }
 
