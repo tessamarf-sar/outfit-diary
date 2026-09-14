@@ -1,0 +1,18 @@
+{
+  "name": "When Worn",
+  "short_name": "When Worn",
+  "description": "Remember what you own, save outfit ideas, and pick what to wear.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F7F3E7",
+  "theme_color": "#303A95",
+  "icons": [
+    {
+      "src": "./when-worn-icon.png",
+      "sizes": "2048x2048",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
