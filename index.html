@@ -345,6 +345,7 @@ p,.body-text,.meta,.label{color:#303A95}.body-text,p{font-size:15px;line-height:
 input,textarea,select{background:#F7F3E7;color:#2A211C;border:1px solid #D9D0BE;border-radius:14px;padding:14px;font-size:16px}.chip{background:#EEE8D9;border-color:#D9D0BE;color:#303A95;border-radius:24px}.chip.active{background:#D8E022;border-color:#303A95}
 .cal-card{background:#F7F3E7;border:1px solid #D9D0BE;border-radius:22px}.cal-day{aspect-ratio:.72;border-radius:12px;background:#EEE8D9}.cal-day-num{background:transparent;color:#303A95!important}.cal-day-dot{background:rgba(0,0,0,.5);color:#fff}
 .ww-trip-thumb{background:#EEE8D9;border-color:#D9D0BE;color:#303A95}.ww-trip-day{background:#EEE8D9}.ww-sticky-actions{background:#F8982E}
+.ww-editor-actions{position:sticky;top:-18px;z-index:12;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 0;background:var(--bg)}.ww-editor-actions .btn{width:100%;padding-inline:8px}
 body.ww-dark{--bg:#303A95;--surface:#242D78;--surface-alt:#242D78;--surface-alt-2:#3D478F;--ink:#F7F3E7;--ink-soft:#F7F3E7;--ink-faint:#F7F3E7;--line:#6872BD;--accent:#F7F3E7;--accent-ink:#303A95;--accent-soft:#242D78;--accent-2:#F8982E;--accent-2-soft:#3D478F;background:#303A95;color:#F7F3E7}
 body.ww-dark #app,body.ww-dark #main-scroll,body.ww-dark #bottom-nav,body.ww-dark .sheet{background:#303A95}body.ww-dark h1,body.ww-dark h2,body.ww-dark h3,body.ww-dark .h1,body.ww-dark .h2,body.ww-dark .h3,body.ww-dark p,body.ww-dark .body-text,body.ww-dark .label,body.ww-dark .meta,body.ww-dark .garment-tile-name,body.ww-dark .garment-tile-cat{color:#F7F3E7}body.ww-dark .card,body.ww-dark .ww-box,body.ww-dark .ww-trip-day,body.ww-dark .ww-trip-thumb,body.ww-dark .chip,body.ww-dark .ww-sections i{background:#242D78;color:#F7F3E7;border-color:#6872BD}body.ww-dark input,body.ww-dark textarea,body.ww-dark select{background:#303A95;color:#F7F3E7;border-color:#6872BD}body.ww-dark .nav-btn{color:#F7F3E7}body.ww-dark .nav-btn.active{background:#D8E022;color:#303A95}body.ww-dark .btn-primary{background:#D8E022;color:#303A95}body.ww-dark .ww-logo{border-radius:22px;background:#303A95}body.ww-dark .ww-logo img{content:url('./when-worn-icon.png');width:118px;height:118px;left:0;top:-16px;border-radius:22px}
 @media(max-width:350px){#main-scroll{padding:16px 14px 150px}.nav-btn{font-size:8px}.nav-btn span{font-size:8px}.ww-sections{gap:2px}.btn{padding-inline:12px}}
@@ -1122,6 +1123,10 @@ function openGarmentForm(existingId,opts){
   var sheetId=opts.nested?'garment-form-nested':'garment-form';
   openSheetObj({id:sheetId,render:function(){
     var body=
+      (existing?'<div class="ww-editor-actions">'+
+        '<button class="btn btn-primary" data-action="save-garment" data-sheet="'+sheetId+'">Save garment</button>'+
+        '<button class="btn btn-ghost" data-action="delete-garment" data-id="'+existing.id+'">Delete garment</button>'+
+      '</div>':'')+
       '<div class="ww-form-top">'+
         uploadBoxHtml(draft.photo,sheetId)+
         '<div class="field" style="flex:1;">'+
@@ -1137,7 +1142,7 @@ function openGarmentForm(existingId,opts){
         '<textarea data-sheet="'+sheetId+'" data-field="notes" placeholder="Optional notes">'+esc(draft.notes)+'</textarea>'+
       '</div>';
     var foot='<button class="btn btn-ghost" data-action="close-sheet" data-sheet="'+sheetId+'">Cancel</button>'+
-      '<button class="btn btn-primary btn-block" data-action="save-garment" data-sheet="'+sheetId+'">'+(existing?'Save changes':'Save garment')+'</button>'+(existing?'<button class="btn btn-ghost ww-delete" data-action="delete-garment" data-id="'+existing.id+'">Delete garment</button>':'');
+      (!existing?'<button class="btn btn-primary btn-block" data-action="save-garment" data-sheet="'+sheetId+'">Save garment</button>':'');
     return sheetShell(sheetId,existing?'Edit garment':'New garment',body,foot);
   },draft:draft,onSaved:opts.onSaved});
 }
