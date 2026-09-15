@@ -1127,6 +1127,7 @@ function openGarmentForm(existingId,opts){
         '<button class="btn btn-primary" data-action="save-garment" data-sheet="'+sheetId+'">Save garment</button>'+
         '<button class="btn btn-ghost" data-action="delete-garment" data-id="'+existing.id+'">Delete garment</button>'+
       '</div>':'')+
+      (existing&&DATA.outfits.some(function(o){return o.photo&&(o.garmentIds||[]).indexOf(existing.id)>-1;})?'<div class="field"><label class="label">Use a photo from your looks</label><div class="ww-trip-grid">'+DATA.outfits.filter(function(o){return o.photo&&(o.garmentIds||[]).indexOf(existing.id)>-1;}).map(function(o){return '<button class="ww-trip-thumb" data-action="garment-use-outfit-photo" data-sheet="'+sheetId+'" data-id="'+o.id+'"><img src="'+esc(o.photo)+'" alt=""><small>'+esc(o.name||'Untitled outfit')+'</small></button>';}).join('')+'</div></div>':'')+
       '<div class="ww-form-top">'+
         uploadBoxHtml(draft.photo,sheetId)+
         '<div class="field" style="flex:1;">'+
@@ -1637,6 +1638,13 @@ document.addEventListener('click',function(e){
       })();
       break;
     case 'save-garment': saveGarmentFromSheet(el.getAttribute('data-sheet')); break;
+    case 'garment-use-outfit-photo':
+      (function(){
+        var s=sheets.find(function(x){return x.id===el.getAttribute('data-sheet');});
+        var outfit=outfitById(id);
+        if(s&&outfit&&outfit.photo){s.draft.photo=outfit.photo;refreshSheet();toast('Outfit photo selected');}
+      })();
+      break;
     case 'outfit-add-new-garment':
       openGarmentForm(null,{nested:true,onSaved:function(g){
         var s=sheets.find(function(x){return x.id==='outfit-form';});
